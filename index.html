@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>우리동네 환경 지도 앱</title>
+  <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green-50: #eaf3de;
+      --green-100: #c0dd97;
+      --green-200: #97c459;
+      --green-600: #3b6d11;
+      --green-800: #27500a;
+      --teal-50: #e1f5ee;
+      --teal-100: #9fe1cb;
+      --teal-600: #0f6e56;
+      --teal-800: #085041;
+      --amber-50: #faeeda;
+      --amber-100: #fac775;
+      --amber-600: #854f0b;
+      --surface: #ffffff;
+      --surface-soft: #f7f8f6;
+      --surface-tint: #f1f5ed;
+      --border: #dce5d3;
+      --text: #203017;
+      --text-muted: #617057;
+      --text-faint: #80907a;
+      --shadow: 0 20px 40px rgba(31, 52, 18, 0.08);
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+    }
+
+    body {
+      font-family: "Noto Sans KR", sans-serif;
+      background: linear-gradient(180deg, #eef4eb 0%, #e7efe2 100%);
+      color: var(--text);
+      padding: 16px 0;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .app-shell {
+      position: relative;
+      width: min(420px, calc(100vw - 24px));
+      margin: 0 auto;
+      background: var(--surface-soft);
+      border-radius: var(--radius-xl);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      min-height: 780px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .status-bar {
+      background: var(--green-800);
+      color: #d6f0b2;
+      padding: 10px 16px 8px;
+      font-size: 11px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header {
+      background: var(--green-800);
+      padding: 12px 16px 16px;
+      color: white;
+    }
+
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .app-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #d6f0b2;
+    }
+
+    .location-chip {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      padding: 4px 10px;
+      font-size: 12px;
+      color: #d6f0b2;
+    }
+
+    .search-bar {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: var(--radius-md);
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .search-bar i {
+      font-size: 16px;
+      color: rgba(255, 255, 255, 0.82);
+    }
+
+    .search-bar input {
+      border: 0;
+      outline: none;
+      background: transparent;
+      width: 100%;
+      color: white;
+      font-size: 13px;
+    }
+
+    .search-bar input::placeholder {
+      color: rgba(255, 255, 255, 0.72);
+    }
+
+    .category-scroll {
+      background: var(--surface);
+      padding: 12px 16px;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .category-scroll::-webkit-scrollbar { display: none; }
+
+    .cat-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 12px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+      background: var(--surface-soft);
+      cursor: pointer;
+      min-width: 64px;
+      transition: all 0.15s ease;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .cat-btn.active {
+      background: var(--green-50);
+      border-color: var(--green-200);
+      color: var(--green-800);
+    }
+
+    .cat-btn i { font-size: 20px; }
+    .cat-btn.active i { color: var(--green-600); }
+
+    .map-area {
+      position: relative;
+      height: 260px;
+      background: #e8f5e0;
+      overflow: hidden;
+      flex-shrink: 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    #kakao-map {
+      width: 100%;
+      height: 100%;
+    }
+
+    .map-status {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      top: 12px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(151, 196, 89, 0.45);
+      color: var(--green-800);
+      font-size: 12px;
+      line-height: 1.45;
+      z-index: 4;
+      backdrop-filter: blur(6px);
+    }
+
+    .map-status.hidden {
+      display: none;
+    }
+
+    .map-overlay-btn {
+      position: absolute;
+      right: 12px;
+      bottom: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 7px 10px;
+      font-size: 12px;
+      color: var(--green-800);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      z-index: 3;
+      box-shadow: 0 8px 16px rgba(31, 52, 18, 0.12);
+    }
+
+    .content-area {
+      flex: 1;
+      overflow-y: auto;
+      scrollbar-width: none;
+    }
+
+    .content-area::-webkit-scrollbar { display: none; }
+
+    .section-header {
+      padding: 16px 16px 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .see-all {
+      font-size: 12px;
+      color: var(--green-600);
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .place-card {
+      margin: 0 16px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 12px;
+      display: flex;
+      gap: 12px;
+      cursor: pointer;
+      transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .place-card:hover,
+    .place-card.is-active {
+      border-color: var(--green-200);
+      transform: translateY(-1px);
+      box-shadow: 0 12px 22px rgba(59, 109, 17, 0.08);
+    }
+
+    .place-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 22px;
+      background: var(--green-50);
+    }
+
+    .place-info { flex: 1; min-width: 0; }
+
+    .place-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 3px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .place-addr {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .place-tags {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .tag {
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+
+    .tag-green { background: var(--green-50); color: var(--green-800); }
+    .tag-teal { background: var(--teal-50); color: var(--teal-800); }
+    .tag-amber { background: var(--amber-50); color: var(--amber-600); }
+
+    .place-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .dist {
+      font-size: 11px;
+      color: var(--text-faint);
+    }
+
+    .fav-btn {
+      color: var(--text-faint);
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+      background: transparent;
+      border: 0;
+    }
+
+    .fav-btn.active { color: #e24b4a; }
+
+    .course-card {
+      margin: 0 16px 12px;
+      background: var(--green-50);
+      border: 1px solid var(--green-100);
+      border-radius: var(--radius-lg);
+      padding: 14px;
+      cursor: pointer;
+    }
+
+    .course-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--green-800);
+      margin-bottom: 4px;
+    }
+
+    .course-desc {
+      font-size: 12px;
+      color: var(--green-600);
+      margin-bottom: 10px;
+    }
+
+    .course-steps {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: var(--green-800);
+      flex-wrap: wrap;
+    }
+
+    .step-item {
+      background: white;
+      border-radius: 20px;
+      padding: 3px 8px;
+      border: 1px solid var(--green-100);
+    }
+
+    .step-arrow { color: var(--green-600); font-size: 10px; }
+
+    .reward-banner {
+      margin: 0 16px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .points-circle {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: var(--green-50);
+      border: 2px solid var(--green-100);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .points-num { font-size: 15px; font-weight: 700; color: var(--green-800); line-height: 1; }
+    .points-label { font-size: 9px; color: var(--green-600); }
+    .reward-text { flex: 1; }
+    .reward-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+    .reward-sub { font-size: 11px; color: var(--text-muted); }
+
+    .reward-btn {
+      background: var(--green-600);
+      color: white;
+      border-radius: var(--radius-md);
+      padding: 6px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      border: 0;
+    }
+
+    .empty-state {
+      margin: 0 16px 16px;
+      padding: 20px 16px;
+      border-radius: var(--radius-lg);
+      border: 1px dashed var(--border);
+      background: var(--surface);
+      color: var(--text-muted);
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .bottom-nav {
+      display: flex;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      padding: 8px 0 4px;
+    }
+
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      padding: 4px;
+      cursor: pointer;
+      font-size: 10px;
+      color: var(--text-faint);
+    }
+
+    .nav-item.active { color: var(--green-600); }
+    .nav-item i { font-size: 22px; }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .detail-panel {
+      display: none;
+      position: absolute;
+      inset: 0;
+      background: var(--surface);
+      z-index: 10;
+      overflow-y: auto;
+    }
+
+    .detail-panel.open { display: block; }
+
+    .detail-header-img {
+      height: 160px;
+      background: linear-gradient(180deg, #eff7e7 0%, #dfeecf 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 56px;
+      position: relative;
+    }
+
+    .back-btn {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 16px;
+      color: var(--text);
+    }
+
+    .detail-body { padding: 16px; }
+    .detail-name { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .detail-cat { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+
+    .detail-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .detail-row i { color: var(--text-muted); font-size: 16px; margin-top: 1px; }
+    .detail-row-label { color: var(--text-muted); min-width: 68px; }
+
+    .visit-btn {
+      margin-top: 16px;
+      width: 100%;
+      background: var(--green-800);
+      color: white;
+      border-radius: var(--radius-md);
+      padding: 12px;
+      font-size: 14px;
+      text-align: center;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border: 0;
+    }
+
+    .map-tab-panel {
+      margin: 16px;
+      padding: 16px;
+      border-radius: var(--radius-lg);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      line-height: 1.7;
+      font-size: 13px;
+    }
+
+    @media (max-width: 460px) {
+      body { padding: 8px 0; }
+      .app-shell {
+        width: 100vw;
+        border-radius: 0;
+        min-height: 100vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1 class="sr-only">우리동네 환경 지도 앱</h1>
+
+  <div class="app-shell" id="appShell">
+    <div class="status-bar">
+      <span>9:41</span>
+      <span style="display:flex;gap:6px;align-items:center">
+        <i class="ti ti-wifi" style="font-size:13px"></i>
+        <i class="ti ti-battery-2" style="font-size:13px"></i>
+      </span>
+    </div>
+
+    <div class="header">
+      <div class="header-top">
+        <span class="app-title">내 주변 환경 지도</span>
+        <div class="location-chip" id="locationChip">
+          <i class="ti ti-map-pin" style="font-size:12px"></i>
+          성남시 분당구
+        </div>
+      </div>
+      <label class="search-bar" for="searchInput">
+        <i class="ti ti-search"></i>
+        <input id="searchInput" type="text" placeholder="비건 카페, 공원, 재활용 거점 검색">
+      </label>
+    </div>
+
+    <div class="category-scroll">
+      <button class="cat-btn active" data-cat="all">
+        <i class="ti ti-layout-grid"></i>
+        <span>전체</span>
+      </button>
+      <button class="cat-btn" data-cat="park">
+        <i class="ti ti-trees"></i>
+        <span>공원</span>
+      </button>
+      <button class="cat-btn" data-cat="vegan">
+        <i class="ti ti-bread"></i>
+        <span>비건카페</span>
+      </button>
+      <button class="cat-btn" data-cat="store">
+        <i class="ti ti-shopping-bag"></i>
+        <span>제로웨이스트</span>
+      </button>
+      <button class="cat-btn" data-cat="recycle">
+        <i class="ti ti-recycle"></i>
+        <span>재활용</span>
+      </button>
+    </div>
+
+    <div class="map-area">
+      <div id="kakao-map"></div>
+      <div id="mapStatus" class="map-status">카카오맵을 불러오는 중입니다. 배포 후에는 카카오 개발자 콘솔에 현재 도메인을 JavaScript SDK 도메인으로 등록해야 지도가 표시됩니다.</div>
+      <button class="map-overlay-btn" id="nearbyButton" type="button">
+        <i class="ti ti-current-location" style="font-size:14px" aria-hidden="true"></i>
+        내 주변 보기
+      </button>
+    </div>
+
+    <div class="content-area" id="mainContent">
+      <div id="tab-home" class="tab-content active">
+        <div class="section-header">
+          추천 코스
+          <button class="see-all" type="button" onclick="showCourseIdeas()">전체보기</button>
+        </div>
+
+        <div class="course-card" onclick="showCourseIdeas()">
+          <div class="course-title">탄천 친환경 반나절 코스</div>
+          <div class="course-desc">공원 산책부터 비건 베이커리, 재활용 거점 방문까지 한 번에 둘러보는 루트</div>
+          <div class="course-steps">
+            <span class="step-item">판교 생태학습원</span>
+            <span class="step-arrow">→</span>
+            <span class="step-item">그린테이블 비건</span>
+            <span class="step-arrow">→</span>
+            <span class="step-item">수내 리필스테이션</span>
+          </div>
+        </div>
+
+        <div class="section-header">
+          내 주변 친환경 장소
+          <button class="see-all" type="button" onclick="switchTab('map')">지도 보기</button>
+        </div>
+
+        <div id="placeList"></div>
+
+        <div class="section-header">리워드</div>
+        <div class="reward-banner">
+          <div class="points-circle">
+            <div class="points-num">240</div>
+            <div class="points-label">포인트</div>
+          </div>
+          <div class="reward-text">
+            <div class="reward-title">친환경 실천 리워드</div>
+            <div class="reward-sub">장소 방문 체크인과 텀블러 이용 인증으로 포인트를 모아보세요.</div>
+          </div>
+          <button class="reward-btn" type="button" onclick="showRewardGuide()">혜택 보기</button>
+        </div>
+      </div>
+
+      <div id="tab-map" class="tab-content">
+        <div class="map-tab-panel">
+          지도는 상단 영역에서 바로 조작할 수 있습니다.<br>
+          카테고리와 검색어를 바꾸면 목록과 마커가 함께 갱신됩니다.
+        </div>
+      </div>
+
+      <div id="tab-course" class="tab-content">
+        <div class="section-header">추천 코스</div>
+
+        <div class="course-card" onclick="showCourseIdeas()">
+          <div class="course-title">탄천 친환경 반나절 코스</div>
+          <div class="course-desc">약 3시간, 도보와 대중교통 위주</div>
+          <div class="course-steps">
+            <span class="step-item">판교 생태학습원</span>
+            <span class="step-arrow">→</span>
+            <span class="step-item">그린테이블 비건</span>
+            <span class="step-arrow">→</span>
+            <span class="step-item">수내 리필스테이션</span>
+          </div>
+        </div>
+
+        <div class="course-card" onclick="showCourseIdeas()">
+          <div class="course-title">정자동 슬로우 그린 코스</div>
+          <div class="course-desc">약 2시간, 산책과 카페 중심</div>
+          <div class="course-steps">
+            <span class="step-item">정자 탄천공원</span>
+            <span class="step-arrow">→</span>
+            <span class="step-item">더 브레드 블루</span>
+            <span class="step-arrow">→</span>
+            <span class="step-item">분당 업사이클 거점</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-reward" class="tab-content">
+        <div class="section-header">나의 리워드</div>
+        <div class="reward-banner">
+          <div class="points-circle">
+            <div class="points-num">240</div>
+            <div class="points-label">포인트</div>
+          </div>
+          <div class="reward-text">
+            <div class="reward-title">현재 포인트</div>
+            <div class="reward-sub">지속 가능한 소비를 할수록 교환 가능한 혜택이 늘어납니다.</div>
+          </div>
+          <button class="reward-btn" type="button" onclick="showRewardGuide()">교환 안내</button>
+        </div>
+
+        <div style="padding: 0 16px 16px;">
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:10px">포인트 적립 방법</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface);border-radius:14px;border:1px solid var(--border)">
+              <i class="ti ti-map-pin-check" style="font-size:20px;color:var(--green-600)" aria-hidden="true"></i>
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--text)">친환경 장소 방문 인증</div>
+                <div style="font-size:11px;color:var(--text-muted)">장소당 +10P</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface);border-radius:14px;border:1px solid var(--border)">
+              <i class="ti ti-bottle" style="font-size:20px;color:var(--teal-600)" aria-hidden="true"></i>
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--text)">텀블러 사용 인증</div>
+                <div style="font-size:11px;color:var(--text-muted)">건당 +5P</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface);border-radius:14px;border:1px solid var(--border)">
+              <i class="ti ti-run" style="font-size:20px;color:var(--amber-600)" aria-hidden="true"></i>
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--text)">플로깅 코스 참여 인증</div>
+                <div style="font-size:11px;color:var(--text-muted)">코스당 +20P</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-nav">
+      <button class="nav-item active" id="nav-home" type="button" onclick="switchTab('home')">
+        <i class="ti ti-home-2" aria-hidden="true"></i>
+        <span>홈</span>
+      </button>
+      <button class="nav-item" id="nav-map" type="button" onclick="switchTab('map')">
+        <i class="ti ti-map-2" aria-hidden="true"></i>
+        <span>지도</span>
+      </button>
+      <button class="nav-item" id="nav-course" type="button" onclick="switchTab('course')">
+        <i class="ti ti-route" aria-hidden="true"></i>
+        <span>코스</span>
+      </button>
+      <button class="nav-item" id="nav-reward" type="button" onclick="switchTab('reward')">
+        <i class="ti ti-gift" aria-hidden="true"></i>
+        <span>리워드</span>
+      </button>
+      <button class="nav-item" id="nav-my" type="button" onclick="showProfileGuide()">
+        <i class="ti ti-user-circle" aria-hidden="true"></i>
+        <span>마이</span>
+      </button>
+    </div>
+
+    <div class="detail-panel" id="detailPanel">
+      <div class="detail-header-img" id="detailEmoji">
+        <button class="back-btn" type="button" onclick="closeDetail()"><i class="ti ti-arrow-left" aria-hidden="true"></i></button>
+      </div>
+      <div class="detail-body" id="detailBody"></div>
+    </div>
+  </div>
+
+  <script>
+    const KAKAO_JS_KEY = "89d5a8b6ef1bc8512e595bc9ffa22608";
+    const DEFAULT_CENTER = { lat: 37.38411, lng: 127.12352 };
+    const CATEGORY_META = {
+      all: { label: "전체", color: "#3B6D11", icon: "ti-layout-grid" },
+      park: { label: "공원", color: "#3B6D11", icon: "ti-trees" },
+      vegan: { label: "비건카페", color: "#0F6E56", icon: "ti-bread" },
+      store: { label: "제로웨이스트", color: "#0F6E56", icon: "ti-shopping-bag" },
+      recycle: { label: "재활용", color: "#854F0B", icon: "ti-recycle" }
+    };
+
+    const places = [
+      {
+        name: "판교 생태학습원",
+        cat: "park",
+        addr: "경기 성남시 분당구 대왕판교로 645번길 21",
+        hours: "매일 09:00~18:00",
+        emoji: "🌿",
+        tags: [["공원·생태", "green"], ["플로깅", "teal"]],
+        info: "판교 일대 생태를 체험할 수 있는 복합 공간입니다. 산책로와 학습 공간이 붙어 있어 친환경 코스의 첫 출발지로 쓰기 좋습니다.",
+        lat: 37.39285,
+        lng: 127.11054
+      },
+      {
+        name: "더 브레드 블루 판교점",
+        cat: "vegan",
+        addr: "경기 성남시 분당구 판교역로 145 알파돔타워",
+        hours: "매일 10:00~20:00",
+        emoji: "🥯",
+        tags: [["비건 메뉴", "green"], ["텀블러 할인", "teal"]],
+        info: "식물성 재료 중심으로 만든 베이커리와 음료를 만날 수 있습니다. 텀블러를 가져오면 추가 할인을 받는 설정으로 데모를 구성했습니다.",
+        lat: 37.39582,
+        lng: 127.11188
+      },
+      {
+        name: "정자 탄천공원",
+        cat: "park",
+        addr: "경기 성남시 분당구 정자동 7",
+        hours: "24시간 이용 가능",
+        emoji: "🌳",
+        tags: [["공원·휴식", "green"], ["자전거 코스", "teal"]],
+        info: "탄천을 따라 이어지는 산책 구간입니다. 러닝이나 플로깅 코스를 만들기 쉬워 환경 챌린지 미션 장소로 연결하기 좋습니다.",
+        lat: 37.36759,
+        lng: 127.10835
+      },
+      {
+        name: "수내 리필스테이션",
+        cat: "recycle",
+        addr: "경기 성남시 분당구 수내동 16-7",
+        hours: "평일 10:00~18:00",
+        emoji: "♻️",
+        tags: [["리필 스테이션", "amber"], ["포인트 적립", "green"]],
+        info: "세제와 생활용품 소분 구매, 다회용기 리필 체험이 가능한 거점입니다. 방문 인증과 포인트 적립 흐름을 붙이기 쉬운 장소입니다.",
+        lat: 37.37826,
+        lng: 127.11597
+      },
+      {
+        name: "그린테이블 비건 카페",
+        cat: "store",
+        addr: "경기 성남시 분당구 서현로210번길 16",
+        hours: "매일 11:00~21:00",
+        emoji: "🛍️",
+        tags: [["제로웨이스트", "teal"], ["비건 간식", "green"]],
+        info: "비건 디저트와 함께 친환경 생활용품을 판매하는 복합 공간 콘셉트입니다. 지도상에서 카페와 친환경 소비 거점을 동시에 보여주기 좋습니다.",
+        lat: 37.38575,
+        lng: 127.12379
+      }
+    ];
+
+    let map = null;
+    let markers = [];
+    let infoWindow = null;
+    let currentCat = "all";
+    let currentTab = "home";
+    let searchKeyword = "";
+    let favorites = new Set();
+    let selectedIndex = null;
+    let userPosition = null;
+    let userMarker = null;
+    let locationAccuracyCircle = null;
+
+    const els = {
+      placeList: document.getElementById("placeList"),
+      detailPanel: document.getElementById("detailPanel"),
+      detailEmoji: document.getElementById("detailEmoji"),
+      detailBody: document.getElementById("detailBody"),
+      mapStatus: document.getElementById("mapStatus"),
+      searchInput: document.getElementById("searchInput"),
+      locationChip: document.getElementById("locationChip")
+    };
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function showStatus(message, hide = false) {
+      els.mapStatus.textContent = message;
+      els.mapStatus.classList.toggle("hidden", hide);
+    }
+
+    function getVisiblePlaces() {
+      const keyword = searchKeyword.trim().toLowerCase();
+      return places.filter((place) => {
+        const catMatched = currentCat === "all" || place.cat === currentCat;
+        if (!catMatched) return false;
+        if (!keyword) return true;
+        return [place.name, place.addr, CATEGORY_META[place.cat].label].join(" ").toLowerCase().includes(keyword);
+      });
+    }
+
+    function distanceKm(lat1, lng1, lat2, lng2) {
+      const rad = Math.PI / 180;
+      const dLat = (lat2 - lat1) * rad;
+      const dLng = (lng2 - lng1) * rad;
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLng / 2) ** 2;
+      return 6371 * 2 * Math.asin(Math.sqrt(a));
+    }
+
+    function distanceLabel(place) {
+      if (!userPosition) return "내 위치 미설정";
+      const km = distanceKm(userPosition.lat, userPosition.lng, place.lat, place.lng);
+      if (km < 1) return `${Math.round(km * 1000)}m`;
+      return `${km.toFixed(1)}km`;
+    }
+
+    function createMarkerImage(place, selected = false) {
+      const color = CATEGORY_META[place.cat]?.color || CATEGORY_META.all.color;
+      const size = selected ? 42 : 34;
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 40 40">
+          <defs>
+            <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+              <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="rgba(20, 33, 15, 0.28)"/>
+            </filter>
+          </defs>
+          <circle cx="20" cy="20" r="${selected ? 18 : 15}" fill="${selected ? "rgba(255,255,255,0.92)" : "rgba(255,255,255,0.82)"}" />
+          <path d="M20 4C13.373 4 8 9.373 8 16c0 8.183 9.339 16.192 11.229 17.739a1.2 1.2 0 0 0 1.542 0C22.661 32.192 32 24.183 32 16 32 9.373 26.627 4 20 4Z" fill="${color}" stroke="#ffffff" stroke-width="1.8" filter="url(#shadow)"/>
+          <circle cx="20" cy="16" r="5.2" fill="rgba(255,255,255,0.18)"/>
+          <text x="20" y="18.2" text-anchor="middle" font-size="8.6" font-weight="700" fill="#ffffff">${place.emoji}</text>
+        </svg>
+      `;
+      return new kakao.maps.MarkerImage(
+        `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
+        new kakao.maps.Size(size, size),
+        { offset: new kakao.maps.Point(size / 2, size) }
+      );
+    }
+
+    function removeMarkers() {
+      markers.forEach((marker) => marker.setMap(null));
+      markers = [];
+    }
+
+    function fitToVisiblePlaces(visiblePlaces) {
+      if (!map || !visiblePlaces.length) return;
+      const bounds = new kakao.maps.LatLngBounds();
+      visiblePlaces.forEach((place) => bounds.extend(new kakao.maps.LatLng(place.lat, place.lng)));
+      if (userPosition) bounds.extend(new kakao.maps.LatLng(userPosition.lat, userPosition.lng));
+      map.setBounds(bounds, 40, 40, 40, 40);
+    }
+
+    function refreshMarkers() {
+      if (!map) return;
+      const visiblePlaces = getVisiblePlaces();
+      removeMarkers();
+
+      visiblePlaces.forEach((place) => {
+        const index = places.indexOf(place);
+        const marker = new kakao.maps.Marker({
+          map,
+          position: new kakao.maps.LatLng(place.lat, place.lng),
+          title: place.name,
+          image: createMarkerImage(place, selectedIndex === index)
+        });
+
+        kakao.maps.event.addListener(marker, "click", () => {
+          openDetail(index);
+        });
+
+        kakao.maps.event.addListener(marker, "mouseover", () => {
+          if (!infoWindow) {
+            infoWindow = new kakao.maps.InfoWindow({ zIndex: 5 });
+          }
+          infoWindow.setContent(`<div style="padding:7px 9px;font-size:12px;font-weight:600;color:#203017;">${escapeHtml(place.name)}</div>`);
+          infoWindow.open(map, marker);
+        });
+
+        kakao.maps.event.addListener(marker, "mouseout", () => {
+          if (infoWindow) infoWindow.close();
+        });
+
+        markers.push(marker);
+      });
+
+      if (!visiblePlaces.length) {
+        showStatus("현재 필터에 맞는 장소가 없습니다. 검색어를 지우거나 카테고리를 바꿔보세요.");
+        return;
+      }
+
+      showStatus("", true);
+      fitToVisiblePlaces(visiblePlaces);
+    }
+
+    function renderPlaces() {
+      const visiblePlaces = getVisiblePlaces();
+      if (!visiblePlaces.length) {
+        els.placeList.innerHTML = `<div class="empty-state">조건에 맞는 장소가 없습니다.<br>검색어를 바꾸거나 전체 카테고리로 다시 확인해보세요.</div>`;
+        return;
+      }
+
+      els.placeList.innerHTML = visiblePlaces.map((place) => {
+        const realIndex = places.indexOf(place);
+        const isFav = favorites.has(realIndex);
+        const activeClass = selectedIndex === realIndex ? " is-active" : "";
+        const tagHtml = place.tags.map(([text, tone]) => `<span class="tag tag-${tone}">${escapeHtml(text)}</span>`).join("");
+        return `
+          <div class="place-card${activeClass}" onclick="openDetail(${realIndex})">
+            <div class="place-icon">${place.emoji}</div>
+            <div class="place-info">
+              <div class="place-name">${escapeHtml(place.name)}</div>
+              <div class="place-addr">${escapeHtml(place.addr)}</div>
+              <div class="place-tags">${tagHtml}</div>
+            </div>
+            <div class="place-right">
+              <span class="dist">${distanceLabel(place)}</span>
+              <button class="fav-btn ${isFav ? "active" : ""}" type="button" onclick="toggleFav(event, ${realIndex})">
+                <i class="ti ti-heart${isFav ? "-filled" : ""}" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderAll() {
+      renderPlaces();
+      refreshMarkers();
+    }
+
+    function setCategory(cat) {
+      currentCat = cat;
+      document.querySelectorAll(".cat-btn").forEach((button) => {
+        button.classList.toggle("active", button.dataset.cat === cat);
+      });
+      selectedIndex = null;
+      renderAll();
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll(".tab-content").forEach((panel) => panel.classList.remove("active"));
+      document.querySelectorAll(".nav-item").forEach((button) => button.classList.remove("active"));
+      document.getElementById(`tab-${tab}`).classList.add("active");
+      document.getElementById(`nav-${tab}`).classList.add("active");
+      if (tab === "map") {
+        setTimeout(() => {
+          if (map) kakao.maps.event.trigger(map, "resize");
+          refreshMarkers();
+        }, 60);
+      }
+    }
+
+    function toggleFav(event, index) {
+      event.stopPropagation();
+      if (favorites.has(index)) {
+        favorites.delete(index);
+      } else {
+        favorites.add(index);
+      }
+      renderPlaces();
+    }
+
+    function openDetail(index) {
+      selectedIndex = index;
+      const place = places[index];
+      els.detailEmoji.innerHTML = `
+        <div style="font-size:56px">${place.emoji}</div>
+        <button class="back-btn" type="button" onclick="closeDetail()"><i class="ti ti-arrow-left" aria-hidden="true"></i></button>
+      `;
+
+      const tagHtml = place.tags.map(([text, tone]) => `<span class="tag tag-${tone}">${escapeHtml(text)}</span>`).join("");
+      els.detailBody.innerHTML = `
+        <div class="detail-name">${escapeHtml(place.name)}</div>
+        <div class="detail-cat">${tagHtml}</div>
+        <div class="detail-row"><i class="ti ti-map-pin" aria-hidden="true"></i><div><span class="detail-row-label">주소</span>${escapeHtml(place.addr)}</div></div>
+        <div class="detail-row"><i class="ti ti-clock" aria-hidden="true"></i><div><span class="detail-row-label">운영시간</span>${escapeHtml(place.hours)}</div></div>
+        <div class="detail-row"><i class="ti ti-walk" aria-hidden="true"></i><div><span class="detail-row-label">거리</span>${escapeHtml(distanceLabel(place))}</div></div>
+        <div class="detail-row" style="border-bottom:none"><i class="ti ti-info-circle" aria-hidden="true"></i><div>${escapeHtml(place.info)}</div></div>
+        <button class="visit-btn" type="button" onclick="showCheckinGuide('${escapeHtml(place.name)}')">
+          <i class="ti ti-map-pin-check" aria-hidden="true"></i>
+          방문 인증하기 (+10P)
+        </button>
+      `;
+
+      els.detailPanel.classList.add("open");
+      renderPlaces();
+      refreshMarkers();
+      if (map) {
+        map.panTo(new kakao.maps.LatLng(place.lat, place.lng));
+      }
+    }
+
+    function closeDetail() {
+      els.detailPanel.classList.remove("open");
+    }
+
+    function showCourseIdeas() {
+      alert("추천 코스 상세는 다음 단계에서 코스 길찾기와 연동할 수 있습니다. 현재 버전에서는 지도와 장소 탐색 흐름을 우선 구현했습니다.");
+    }
+
+    function showRewardGuide() {
+      alert("리워드 기능은 방문 인증, 텀블러 사용 인증, 플로깅 코스 완료 이벤트와 연결하는 방식으로 확장할 수 있습니다.");
+    }
+
+    function showProfileGuide() {
+      alert("마이페이지는 즐겨찾기한 장소, 방문 기록, 누적 포인트를 모아보는 화면으로 확장하면 좋습니다.");
+    }
+
+    function showCheckinGuide(placeName) {
+      alert(`${placeName} 방문 인증은 QR 또는 위치 기반 체크인 흐름으로 이어지도록 설계할 수 있습니다.`);
+    }
+
+    function updateLocationChip(label) {
+      els.locationChip.innerHTML = `<i class="ti ti-map-pin" style="font-size:12px"></i>${escapeHtml(label)}`;
+    }
+
+    function setUserLocation(lat, lng, accuracy) {
+      userPosition = { lat, lng };
+      if (!map || !(window.kakao && kakao.maps)) return;
+
+      const position = new kakao.maps.LatLng(lat, lng);
+      if (!userMarker) {
+        userMarker = new kakao.maps.Marker({
+          map,
+          position,
+          title: "내 위치"
+        });
+      } else {
+        userMarker.setPosition(position);
+        userMarker.setMap(map);
+      }
+
+      if (locationAccuracyCircle) {
+        locationAccuracyCircle.setMap(null);
+        locationAccuracyCircle = null;
+      }
+
+      if (accuracy) {
+        locationAccuracyCircle = new kakao.maps.Circle({
+          center: position,
+          radius: Math.min(Math.max(accuracy, 50), 200),
+          strokeWeight: 1,
+          strokeColor: "#1a73e8",
+          strokeOpacity: 0.35,
+          fillColor: "#1a73e8",
+          fillOpacity: 0.08
+        });
+        locationAccuracyCircle.setMap(map);
+      }
+
+      renderPlaces();
+    }
+
+    function focusNearby() {
+      if (!navigator.geolocation) {
+        alert("이 브라우저에서는 위치 기능을 지원하지 않습니다.");
+        return;
+      }
+
+      showStatus("현재 위치를 확인하는 중입니다.");
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude, accuracy } = position.coords;
+          setUserLocation(latitude, longitude, accuracy);
+          showStatus("", true);
+          updateLocationChip("현재 위치 기준");
+          if (map) {
+            map.panTo(new kakao.maps.LatLng(latitude, longitude));
+          }
+        },
+        () => {
+          showStatus("위치 권한이 없어 기본 지역(분당구) 중심으로 보여드립니다.");
+        },
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 300000 }
+      );
+    }
+
+    function initMap() {
+      map = new kakao.maps.Map(document.getElementById("kakao-map"), {
+        center: new kakao.maps.LatLng(DEFAULT_CENTER.lat, DEFAULT_CENTER.lng),
+        level: 5
+      });
+
+      infoWindow = new kakao.maps.InfoWindow({ zIndex: 5 });
+      renderAll();
+      showStatus("", true);
+    }
+
+    function loadKakaoMap() {
+      if (window.kakao && window.kakao.maps) {
+        kakao.maps.load(initMap);
+        return;
+      }
+
+      if (!KAKAO_JS_KEY) {
+        showStatus("카카오 JavaScript 키가 설정되지 않았습니다.");
+        return;
+      }
+
+      const script = document.createElement("script");
+      script.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${encodeURIComponent(KAKAO_JS_KEY)}&autoload=false`;
+      script.async = true;
+      script.onload = () => kakao.maps.load(initMap);
+      script.onerror = () => {
+        showStatus("카카오맵을 불러오지 못했습니다. 배포 도메인이 JavaScript SDK 도메인에 등록되어 있는지 확인해 주세요.");
+      };
+      document.head.appendChild(script);
+    }
+
+    document.querySelectorAll(".cat-btn").forEach((button) => {
+      button.addEventListener("click", () => setCategory(button.dataset.cat));
+    });
+
+    els.searchInput.addEventListener("input", (event) => {
+      searchKeyword = event.target.value;
+      selectedIndex = null;
+      renderAll();
+    });
+
+    document.getElementById("nearbyButton").addEventListener("click", focusNearby);
+
+    window.switchTab = switchTab;
+    window.openDetail = openDetail;
+    window.closeDetail = closeDetail;
+    window.toggleFav = toggleFav;
+    window.showCourseIdeas = showCourseIdeas;
+    window.showRewardGuide = showRewardGuide;
+    window.showProfileGuide = showProfileGuide;
+    window.showCheckinGuide = showCheckinGuide;
+
+    renderPlaces();
+    loadKakaoMap();
+  </script>
+</body>
+</html>
